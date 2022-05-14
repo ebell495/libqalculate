@@ -4,4 +4,5 @@ target: libqalculate
 image: ghcr.io/ebell495/libqalculate:latest
 
 cmds:
-    - cmd: qalc
+    - cmd: ./fuzz
+      libfuzzer: true
