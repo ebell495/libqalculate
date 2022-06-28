@@ -169,13 +169,13 @@ Calculator::Calculator() {
 	srand(time(NULL));
 
 	exchange_rates_time[0] = 0;
-	exchange_rates_time[1] = (time_t) 457896L * (time_t) 3600;
+	exchange_rates_time[1] = (time_t) 459192L * (time_t) 3600;
 	exchange_rates_time[2] = 0;
-	priv->exchange_rates_time2[0] = (time_t) 457896L * (time_t) 3600;
+	priv->exchange_rates_time2[0] = (time_t) 459192L * (time_t) 3600;
 	exchange_rates_check_time[0] = 0;
-	exchange_rates_check_time[1] = (time_t) 457896L * (time_t) 3600;
+	exchange_rates_check_time[1] = (time_t) 459192L * (time_t) 3600;
 	exchange_rates_check_time[2] = 0;
-	priv->exchange_rates_check_time2[0] = (time_t) 457896L * (time_t) 3600;
+	priv->exchange_rates_check_time2[0] = (time_t) 459192L * (time_t) 3600;
 	b_exchange_rates_warning_enabled = true;
 	b_exchange_rates_used = 0;
 
@@ -408,13 +408,13 @@ Calculator::Calculator(bool ignore_locale) {
 	srand(time(NULL));
 
 	exchange_rates_time[0] = 0;
-	exchange_rates_time[1] = (time_t) 457896L * (time_t) 3600;
+	exchange_rates_time[1] = (time_t) 459192L * (time_t) 3600;
 	exchange_rates_time[2] = 0;
-	priv->exchange_rates_time2[0] = (time_t) 457896L * (time_t) 3600;
+	priv->exchange_rates_time2[0] = (time_t) 459192L * (time_t) 3600;
 	exchange_rates_check_time[0] = 0;
-	exchange_rates_check_time[1] = (time_t) 457896L * (time_t) 3600;
+	exchange_rates_check_time[1] = (time_t) 459192L * (time_t) 3600;
 	exchange_rates_check_time[2] = 0;
-	priv->exchange_rates_check_time2[0] = (time_t) 457896L * (time_t) 3600;
+	priv->exchange_rates_check_time2[0] = (time_t) 459192L * (time_t) 3600;
 	b_exchange_rates_warning_enabled = true;
 	b_exchange_rates_used = 0;
 
@@ -596,8 +596,22 @@ Calculator::~Calculator() {
 	closeGnuplot();
 	abort();
 	terminateThreads();
+	clearRPNStack();
+	for(unordered_map<Unit*, MathStructure*>::iterator it = priv->composite_unit_base.begin(); it != priv->composite_unit_base.end(); ++it) it->second->unref();
+	for(unordered_map<size_t, MathStructure*>::iterator it = priv->id_structs.begin(); it != priv->id_structs.end(); ++it) it->second->unref();
+	for(size_t i = 0; i < functions.size(); i++) delete functions[i];
+	for(size_t i = 0; i < variables.size(); i++) delete variables[i];
+	for(size_t i = 0; i < units.size(); i++) delete units[i];
+	for(size_t i = 0; i < prefixes.size(); i++) delete prefixes[i];
+	for(size_t i = 0; i < data_sets.size(); i++) delete data_sets[i];
+	if(v_C) delete v_C;
+	if(decimal_null_prefix) delete decimal_null_prefix;
+	if(binary_null_prefix) delete binary_null_prefix;
+	if(default_assumptions) delete default_assumptions;
+	if(saved_locale) free(saved_locale);
 	delete priv;
 	delete calculate_thread;
+	calculator = NULL;
 	gmp_randclear(randstate);
 #ifdef HAVE_ICU
 	if(ucm) ucasemap_close(ucm);
@@ -1775,11 +1789,11 @@ void Calculator::addBuiltinFunctions() {
 }
 void Calculator::addBuiltinUnits() {
 	u_euro = addUnit(new Unit(_("Currency"), "EUR", "euros", "euro", "European Euros", false, true, true));
-	u_btc = addUnit(new AliasUnit(_("Currency"), "BTC", "bitcoins", "bitcoin", "Bitcoins", u_euro, "43380.4", 1, "", false, true, true));
+	u_btc = addUnit(new AliasUnit(_("Currency"), "BTC", "bitcoins", "bitcoin", "Bitcoins", u_euro, "27825.81", 1, "", false, true, true));
 	u_btc->setApproximate();
 	u_btc->setPrecision(-2);
 	u_btc->setChanged(false);
-	priv->u_byn = addUnit(new AliasUnit(_("Currency"), "BYN", "", "", "Belarusian Ruble", u_euro, "1/3.5806", 1, "", false, true, true));
+	priv->u_byn = addUnit(new AliasUnit(_("Currency"), "BYN", "", "", "Belarusian Ruble", u_euro, "1/3.5628", 1, "", false, true, true));
 	priv->u_byn->setHidden(true);
 	priv->u_byn->setApproximate();
 	priv->u_byn->setPrecision(-2);

@@ -56,7 +56,7 @@ MathStructure *mstruct, *parsed_mstruct, mstruct_exact, prepend_mstruct;
 KnownVariable *vans[5], *v_memory;
 string result_text, parsed_text, original_expression;
 vector<string> alt_results;
-bool load_global_defs, fetch_exchange_rates_at_startup, first_time, save_mode_on_exit, save_defs_on_exit, load_defaults = false;
+bool load_global_defs, fetch_exchange_rates_at_startup, first_time, save_mode_on_exit, save_defs_on_exit, clear_history_on_exit, load_defaults = false;
 int auto_update_exchange_rates;
 PrintOptions printops, saved_printops;
 bool complex_angle_form = false, saved_caf = false;
@@ -399,9 +399,9 @@ void completion_match_item(ExpressionItem *item, const char *text, size_t l) {
 	if(b_match && ename) {
 		if(ename->completion_only) {
 			ename = &item->preferredInputName(ename->abbreviation, printops.use_unicode_signs);
-			matches.push_back(ename->formattedName(item->type(), true));
+			matches.push_back(ename->formattedName(item->type(), true, false, printops.use_unicode_signs));
 		} else if(b_formatted) {
-			matches.push_back(strcmp);
+			matches.push_back(ename->formattedName(item->type(), true, false, printops.use_unicode_signs));
 		} else {
 			matches.push_back(ename->name);
 		}
@@ -1281,6 +1281,16 @@ void set_option(string str) {
 		} else {
 			save_mode_on_exit = false;
 		}
+	} else if(EQUALS_IGNORECASE_AND_LOCAL(svar, "clear history", _("clear history")) || equalsIgnoreCase(svar, "save_history")) {
+		int v = s2b(svalue);
+		if(v >= 0 && equalsIgnoreCase(svar, "save_history")) v = !v;
+		if(v < 0) {
+			PUTS_UNICODE(_("Illegal value."));
+		} else if(v > 0) {
+			clear_history_on_exit = true;
+		} else {
+			clear_history_on_exit = false;
+		}
 	} else if(EQUALS_IGNORECASE_AND_LOCAL(svar, "save definitions", _("save definitions")) || svar == "save defs") {
 		int v = s2b(svalue);
 		if(v < 0) {
@@ -1860,14 +1870,14 @@ void list_defs(bool in_interactive, char list_type = 0, string search_str = "") 
 					if(!b_match && i2 == 2 && country_matches((Unit*) item, search_str, list_type == 'c' ? 0 : 3)) b_match = true;
 					if(b_match) {
 						const ExpressionName &ename1 = item->preferredInputName(false, false);
-						name_str = ename1.formattedName(item->type(), true);
+						name_str = ename1.formattedName(item->type(), true, false, printops.use_unicode_signs);
 						size_t name_i = 1;
 						while(true) {
 							const ExpressionName &ename = item->getName(name_i);
 							if(ename == empty_expression_name) break;
 							if(ename != ename1 && !ename.avoid_input && !ename.plural && (!ename.unicode || printops.use_unicode_signs) && !ename.completion_only) {
 								name_str += " / ";
-								name_str += ename.formattedName(item->type(), true);
+								name_str += ename.formattedName(item->type(), true, false, printops.use_unicode_signs);
 							}
 							name_i++;
 						}
@@ -1937,7 +1947,7 @@ void list_defs(bool in_interactive, char list_type = 0, string search_str = "") 
 					PUTS_UNICODE(str.c_str());
 					if(in_interactive) {CHECK_IF_SCREEN_FILLED}
 				}
-				STR_AND_TABS(v->preferredInputName(false, false).formattedName(TYPE_VARIABLE, true).c_str())
+				STR_AND_TABS(v->preferredInputName(false, false).formattedName(TYPE_VARIABLE, true, false, printops.use_unicode_signs).c_str())
 				FPUTS_UNICODE(str.c_str(), stdout);
 				string value;
 				if(v->isKnown()) {
@@ -2026,7 +2036,7 @@ void list_defs(bool in_interactive, char list_type = 0, string search_str = "") 
 					b_functions = true;
 					PUTS_BOLD(_("Functions:"));
 				}
-				puts(f->preferredInputName(false, false).formattedName(TYPE_FUNCTION, true).c_str());
+				puts(f->preferredInputName(false, false).formattedName(TYPE_FUNCTION, true, false, printops.use_unicode_signs).c_str());
 				if(in_interactive) {CHECK_IF_SCREEN_FILLED}
 			}
 		}
@@ -2040,7 +2050,7 @@ void list_defs(bool in_interactive, char list_type = 0, string search_str = "") 
 					b_units = true;
 					PUTS_BOLD(_("Units:"));
 				}
-				puts(u->preferredInputName(false, false).formattedName(TYPE_UNIT, true).c_str());
+				puts(u->preferredInputName(false, false).formattedName(TYPE_UNIT, true, false, printops.use_unicode_signs).c_str());
 				if(in_interactive) {CHECK_IF_SCREEN_FILLED}
 			}
 		}
@@ -2087,14 +2097,14 @@ void list_defs(bool in_interactive, char list_type = 0, string search_str = "") 
 				name_list.push_front(name_str);
 			} else if((!item->isHidden() || list_type == 'c') && item->isActive() && (list_type != 'u' || (item->subtype() != SUBTYPE_COMPOSITE_UNIT && ((Unit*) item)->baseUnit() != CALCULATOR->getUnitById(UNIT_ID_EURO))) && (list_type != 'c' || ((Unit*) item)->isCurrency())) {
 				const ExpressionName &ename1 = item->preferredInputName(false, false);
-				name_str = ename1.formattedName(item->type(), true);
+				name_str = ename1.formattedName(item->type(), true, false, printops.use_unicode_signs);
 				size_t name_i = 1;
 				while(true) {
 					const ExpressionName &ename = item->getName(name_i);
 					if(ename == empty_expression_name) break;
 					if(ename != ename1 && !ename.avoid_input && !ename.plural && (!ename.unicode || printops.use_unicode_signs) && !ename.completion_only) {
 						name_str += " / ";
-						name_str += ename.formattedName(item->type(), true);
+						name_str += ename.formattedName(item->type(), true, false, printops.use_unicode_signs);
 					}
 					name_i++;
 				}
@@ -2732,6 +2742,7 @@ int main(int argc, char *argv[]) {
 		if(rpn_mode && explicit_command && str.empty()) {str = "/"; explicit_command = false;}
 		slen = str.length();
 		ispace = str.find_first_of(SPACES);
+		bool history_was_cleared = false;
 		if(ispace == string::npos) {
 			scom = "";
 		} else {
@@ -3995,10 +4006,13 @@ int main(int argc, char *argv[]) {
 
 			CHECK_IF_SCREEN_FILLED_HEADING(_("Other"));
 
+			PRINT_AND_COLON_TABS(_("clear history"), ""); str += b2yn(clear_history_on_exit, false);
+			CHECK_IF_SCREEN_FILLED_PUTS(str.c_str())
 			PRINT_AND_COLON_TABS(_("ignore locale"), ""); str += b2yn(ignore_locale, false); CHECK_IF_SCREEN_FILLED_PUTS(str.c_str())
 			PRINT_AND_COLON_TABS(_("rpn"), ""); str += b2oo(rpn_mode, false); CHECK_IF_SCREEN_FILLED_PUTS(str.c_str())
 			PRINT_AND_COLON_TABS(_("save definitions"), ""); str += b2yn(save_defs_on_exit, false); CHECK_IF_SCREEN_FILLED_PUTS(str.c_str())
 			PRINT_AND_COLON_TABS(_("save mode"), ""); str += b2yn(save_mode_on_exit, false);
+			CHECK_IF_SCREEN_FILLED_PUTS(str.c_str())
 #ifndef _WIN32
 			PRINT_AND_COLON_TABS(_("sigint action"), "sigint");
 			switch(sigint_action) {
@@ -4007,6 +4021,7 @@ int main(int argc, char *argv[]) {
 				default: {str += _("kill"); break;}
 			}
 #endif
+			CHECK_IF_SCREEN_FILLED_PUTS(str.c_str())
 			puts("");
 		//qalc command
 		} else if(EQUALS_IGNORECASE_AND_LOCAL(str, "help", _("help")) || str == "?") {
@@ -4125,7 +4140,7 @@ int main(int argc, char *argv[]) {
 							CHECK_IF_SCREEN_FILLED_PUTS(str.c_str());
 							CHECK_IF_SCREEN_FILLED_PUTS("");
 							const ExpressionName *ename = &f->preferredName(false, printops.use_unicode_signs);
-							str = ename->formattedName(TYPE_FUNCTION, true);
+							str = ename->formattedName(TYPE_FUNCTION, true, false, printops.use_unicode_signs);
 							int iargs = f->maxargs();
 							if(iargs < 0) {
 								iargs = f->minargs() + 1;
@@ -4165,7 +4180,7 @@ int main(int argc, char *argv[]) {
 							CHECK_IF_SCREEN_FILLED_PUTS(str.c_str());
 							for(size_t i2 = 1; i2 <= f->countNames(); i2++) {
 								if(&f->getName(i2) != ename) {
-									CHECK_IF_SCREEN_FILLED_PUTS(f->getName(i2).formattedName(TYPE_FUNCTION, true).c_str());
+									CHECK_IF_SCREEN_FILLED_PUTS(f->getName(i2).formattedName(TYPE_FUNCTION, true, false, printops.use_unicode_signs).c_str());
 								}
 							}
 							if(f->subtype() == SUBTYPE_DATA_SET) {
@@ -4179,7 +4194,7 @@ int main(int argc, char *argv[]) {
 							}
 							if(!f->example(true).empty()) {
 								CHECK_IF_SCREEN_FILLED_PUTS("");
-								str = _("Example:"); str += " "; str += f->example(false, ename->formattedName(TYPE_FUNCTION, true));
+								str = _("Example:"); str += " "; str += f->example(false, ename->formattedName(TYPE_FUNCTION, true, false, printops.use_unicode_signs));
 								CHECK_IF_SCREEN_FILLED_PUTS(str.c_str());
 							}
 							if(f->subtype() == SUBTYPE_DATA_SET && !((DataSet*) f)->copyright().empty()) {
@@ -4285,11 +4300,11 @@ int main(int argc, char *argv[]) {
 							PRINT_AND_COLON_TABS_INFO(_("Names"));
 							if(item->subtype() != SUBTYPE_COMPOSITE_UNIT) {
 								const ExpressionName *ename = &item->preferredName(true, printops.use_unicode_signs);
-								FPUTS_UNICODE(ename->formattedName(TYPE_UNIT, true).c_str(), stdout);
+								FPUTS_UNICODE(ename->formattedName(TYPE_UNIT, true, false, printops.use_unicode_signs).c_str(), stdout);
 								for(size_t i2 = 1; i2 <= item->countNames(); i2++) {
 									if(&item->getName(i2) != ename && !item->getName(i2).completion_only) {
 										fputs(" / ", stdout);
-										FPUTS_UNICODE(item->getName(i2).formattedName(TYPE_UNIT, true).c_str(), stdout);
+										FPUTS_UNICODE(item->getName(i2).formattedName(TYPE_UNIT, true, false, printops.use_unicode_signs).c_str(), stdout);
 									}
 								}
 							}
@@ -4365,11 +4380,11 @@ int main(int argc, char *argv[]) {
 							CHECK_IF_SCREEN_FILLED_PUTS("");
 							PRINT_AND_COLON_TABS_INFO(_("Names"));
 							const ExpressionName *ename = &item->preferredName(false, printops.use_unicode_signs);
-							FPUTS_UNICODE(ename->formattedName(TYPE_VARIABLE, true).c_str(), stdout);
+							FPUTS_UNICODE(ename->formattedName(TYPE_VARIABLE, true, false, printops.use_unicode_signs).c_str(), stdout);
 							for(size_t i2 = 1; i2 <= item->countNames(); i2++) {
 								if(&item->getName(i2) != ename && !item->getName(i2).completion_only) {
 									fputs(" / ", stdout);
-									FPUTS_UNICODE(item->getName(i2).formattedName(TYPE_VARIABLE, true).c_str(), stdout);
+									FPUTS_UNICODE(item->getName(i2).formattedName(TYPE_VARIABLE, true, false, printops.use_unicode_signs).c_str(), stdout);
 								}
 							}
 							Variable *v = (Variable*) item;
@@ -4768,6 +4783,7 @@ int main(int argc, char *argv[]) {
 
 				CHECK_IF_SCREEN_FILLED_HEADING_S(_("Other"));
 
+				STR_AND_TABS_YESNO(_("clear history"), "", _("Do not save expression history on exit."), clear_history_on_exit);
 				STR_AND_TABS_YESNO(_("ignore locale"), "", _("Ignore system language and use English (requires restart)."), ignore_locale);
 				STR_AND_TABS_BOOL(_("rpn"), "", _("Activates the Reverse Polish Notation stack."), rpn_mode);
 				STR_AND_TABS_YESNO(_("save definitions"), "", _("Save functions, units, and variables on exit."), save_defs_on_exit);
@@ -4996,6 +5012,13 @@ int main(int argc, char *argv[]) {
 				goto show_info;
 			}
 		//qalc command
+		} else if(EQUALS_IGNORECASE_AND_LOCAL(str, "clear history", _("clear history"))) {
+			while(history_length > 0) {
+				HIST_ENTRY *hist = remove_history(0);
+				if(hist) free_history_entry(hist);
+			}
+			history_was_cleared = true;
+		//qalc command
 		} else if(EQUALS_IGNORECASE_AND_LOCAL(str, "clear", _("clear"))) {
 #ifdef _WIN32
 			system("cls");
@@ -5061,7 +5084,7 @@ int main(int argc, char *argv[]) {
 					break;
 				}
 			}
-			add_history(rlbuffer);
+			if(!history_was_cleared) add_history(rlbuffer);
 			free(rlbuffer);
 		}
 #endif
@@ -6927,6 +6950,7 @@ void load_preferences() {
 	rpn_mode = false;
 
 	save_mode_on_exit = true;
+	clear_history_on_exit = false;
 	save_defs_on_exit = true;
 	auto_update_exchange_rates = -1;
 	first_time = false;
@@ -6977,7 +7001,7 @@ void load_preferences() {
 #endif
 
 
-	int version_numbers[] = {4, 1, 1};
+	int version_numbers[] = {4, 2, 0};
 
 	if(file) {
 		char line[10000];
@@ -6998,6 +7022,8 @@ void load_preferences() {
 					parse_qalculate_version(svalue, version_numbers);
 				} else if(svar == "save_mode_on_exit") {
 					save_mode_on_exit = v;
+				} else if(svar == "clear_history_on_exit") {
+					clear_history_on_exit = v;
 				} else if(svar == "save_definitions_on_exit") {
 					save_defs_on_exit = v;
 				} else if(svar == "sigint_action") {
@@ -7329,7 +7355,8 @@ bool save_preferences(bool mode) {
 	FILE *file = NULL;
 	makeDir(getLocalDir());
 #ifdef HAVE_LIBREADLINE
-	write_history(buildPath(getLocalDir(), "qalc.history").c_str());
+	if(clear_history_on_exit && fileExists(buildPath(getLocalDir(), "qalc.history"))) history_truncate_file(buildPath(getLocalDir(), "qalc.history").c_str(), 0);
+	else write_history(buildPath(getLocalDir(), "qalc.history").c_str());
 #endif
 	string filename = buildPath(getLocalDir(), "qalc.cfg");
 	file = fopen(filename.c_str(), "w+");
@@ -7341,6 +7368,7 @@ bool save_preferences(bool mode) {
 	fprintf(file, "version=%s\n", VERSION);
 	fprintf(file, "save_mode_on_exit=%i\n", save_mode_on_exit);
 	fprintf(file, "save_definitions_on_exit=%i\n", save_defs_on_exit);
+	fprintf(file, "clear_history_on_exit=%i\n", clear_history_on_exit);
 #ifndef _WIN32
 	if(sigint_action != 1) fprintf(file, "sigint_action=%i\n", sigint_action);
 #endif
